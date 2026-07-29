@@ -39,6 +39,67 @@ gradle wrapper --gradle-version 8.7
 
 或者直接用 Android Studio 打开项目，它会自动补齐 wrapper 并同步依赖。
 
+## 打包 APK
+
+### 自己用：debug 包
+
+```bash
+./gradlew assembleDebug
+# 产物：app/build/outputs/apk/debug/app-debug.apk
+```
+
+debug 包用 Android 自带的调试密钥签过名，**可以直接安装**，功能与 release 完全一致，
+只是体积略大、不做优化。自己装着听歌用这个就够。
+
+装到已连接的设备：
+
+```bash
+./gradlew installDebug
+# 或手动：adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+没有 adb 时把 apk 传到手机点开即可，需要在系统设置里允许该来源安装未知应用。
+
+### 发给别人：release 包（需要签名）
+
+未签名的 release 包**装不上**，必须先造一个密钥库。密钥丢了就无法给已发布的
+应用推更新，请妥善备份：
+
+```bash
+keytool -genkeypair -v \
+  -keystore release.jks \
+  -alias music \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+然后在项目根目录建 `keystore.properties`（已在 `.gitignore` 里，不会入库）：
+
+```properties
+storeFile=release.jks
+storePassword=你的密钥库口令
+keyAlias=music
+keyPassword=你的密钥口令
+```
+
+可以直接复制 `keystore.properties.example` 改。之后：
+
+```bash
+./gradlew assembleRelease
+# 产物：app/build/outputs/apk/release/app-release.apk
+```
+
+`keystore.properties` 不存在时构建不会失败，只是产出未签名包 —— 那种包装不上，
+只适合再走外部签名流程。
+
+**没有开启 R8 代码压缩**（`isMinifyEnabled = false`）。Media3 有不少扩展器是靠
+反射加载的，R8 会把它们剪掉导致某些格式解不了。要开的话得先补齐 ProGuard 规则，
+并在真机上把所有格式回归一遍。
+
+### 用 Android Studio
+
+`Build → Generate Signed App Bundle / APK → APK`，按向导选或新建密钥库，
+效果与上面等价。上架 Google Play 则要选 App Bundle（`./gradlew bundleRelease`）。
+
 ## 为什么用 SAF 而不是 MediaStore
 
 安卓 10 起限制直接路径访问，读本地音乐有两条路：

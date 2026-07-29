@@ -1,8 +1,23 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+/**
+ * 签名配置从 keystore.properties 读，该文件不入库（见 .gitignore）——
+ * 密钥口令进了 git 就等于没有密钥。文件不存在时 release 走未签名流程，
+ * 不影响 debug 构建。
+ */
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+val hasSigningConfig = keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "com.willmeet.musicplayer"
@@ -17,10 +32,27 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        if (hasSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // 保持关闭：R8 会剪掉 Media3 靠反射加载的扩展器，开之前得先补齐
+            // ProGuard 规则并在真机上完整回归一遍
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
+            if (hasSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
