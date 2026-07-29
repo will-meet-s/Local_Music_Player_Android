@@ -31,13 +31,10 @@
 ./gradlew installDebug      # 装到已连接的设备
 ```
 
-仓库里**没有提交 gradle-wrapper.jar**（二进制不入库）。首次构建前先补一个：
+Gradle wrapper（`gradlew` / `gradlew.bat` / `gradle-wrapper.jar`）已随仓库提交，
+不需要预装 Gradle —— 首次执行 `./gradlew` 时它会自动下载 Gradle 8.7（约 130MB）。
 
-```bash
-gradle wrapper --gradle-version 8.7
-```
-
-或者直接用 Android Studio 打开项目，它会自动补齐 wrapper 并同步依赖。
+只有 Android SDK 需要自备。用 Android Studio 打开项目最省事，它会提示装齐 SDK 34。
 
 ## 打包 APK
 
