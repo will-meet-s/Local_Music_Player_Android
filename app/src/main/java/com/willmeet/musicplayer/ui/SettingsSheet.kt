@@ -2,15 +2,21 @@ package com.willmeet.musicplayer.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -70,24 +76,37 @@ fun SettingsSheet(viewModel: PlayerViewModel, onQuit: () -> Unit) {
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
 
         // 上面那段说了「关掉界面还在放」，所以这里必须给一个真正的出口
-        TextButton(
-            onClick = {
-                viewModel.quit()
-                onQuit()
-            },
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Text("关闭程序", fontWeight = FontWeight.SemiBold)
-        }
+        Text("退出", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
 
         Text(
             "停止播放并退出，通知栏一并消失。下次听歌要重新打开 App。",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            // 与按钮文字左对齐：TextButton 自带 12dp 横向内边距
-            modifier = Modifier.padding(start = 12.dp, bottom = 20.dp)
+            modifier = Modifier.padding(top = 4.dp)
         )
+
+        // 淡红填充而不是纯文字按钮：有底色才不会被当成又一段说明文字。
+        // 不用实心 error 红 —— 这个面板里全是 Switch / Slider，一片饱和红太抢眼。
+        FilledTonalButton(
+            onClick = {
+                viewModel.quit()
+                onQuit()
+            },
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            ),
+            modifier = Modifier
+                .padding(top = 12.dp, bottom = 20.dp)
+                .fillMaxWidth()
+        ) {
+            Icon(
+                Icons.Default.PowerSettingsNew,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("关闭程序", fontWeight = FontWeight.SemiBold)
+        }
     }
 }
