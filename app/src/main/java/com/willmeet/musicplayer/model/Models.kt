@@ -35,10 +35,55 @@ data class Track(
 
     val durationSeconds: Double get() = durationMs / 1000.0
 
-    // data class 默认会对 ByteArray 比引用，导致同一首歌被判成两首。
-    // uri 就是身份，其余字段都是可变的元数据。
-    override fun equals(other: Any?) = other is Track && other.uri == uri
-    override fun hashCode() = uri.hashCode()
+    /**
+     * 结构相等：**所有**字段参与比较，封面按内容而非引用比。
+     *
+     * 不能只比 uri。StateFlow 和 Compose 都靠 `equals` 判断「值到底变没变」——
+     * 只比 uri 的话，元数据加载完写回列表时新旧列表被判成相等，赋值直接被丢弃，
+     * 封面、歌手、内嵌歌词永远到不了界面。
+     *
+     * 手写而不用 data class 默认实现，是因为默认实现对 [artwork] 比引用：
+     * 重扫时同一张封面读第二遍会被判成变化，白白触发整列表重组。
+     */
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Track) return false
+
+        return uri == other.uri &&
+            fileName == other.fileName &&
+            lrcUri == other.lrcUri &&
+            parentId == other.parentId &&
+            title == other.title &&
+            artist == other.artist &&
+            album == other.album &&
+            durationMs == other.durationMs &&
+            embeddedLyrics == other.embeddedLyrics &&
+            replayGain == other.replayGain &&
+            metadataLoaded == other.metadataLoaded &&
+            sameArtwork(other.artwork)
+    }
+
+    private fun sameArtwork(other: ByteArray?): Boolean = when {
+        artwork == null -> other == null
+        other == null -> false
+        else -> artwork.contentEquals(other)
+    }
+
+    /**
+     * 只用少量廉价字段。哈希不必区分每一处差异，相等的对象哈希相同即可 ——
+     * 封面动辄几百 KB，放进哈希只是白烧 CPU。
+     */
+    override fun hashCode(): Int {
+        var result = uri.hashCode()
+        result = 31 * result + title.hashCode()
+        result = 31 * result + (artist?.hashCode() ?: 0)
+        result = 31 * result + (album?.hashCode() ?: 0)
+        result = 31 * result + durationMs.hashCode()
+        result = 31 * result + (embeddedLyrics?.hashCode() ?: 0)
+        result = 31 * result + (artwork?.size ?: 0)
+        result = 31 * result + metadataLoaded.hashCode()
+        return result
+    }
 }
 
 /**

@@ -8,8 +8,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.MetadataRetriever
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.metadata.flac.PictureFrame
+import androidx.media3.extractor.metadata.id3.ApicFrame
+import androidx.media3.extractor.metadata.id3.BinaryFrame
 import androidx.media3.extractor.metadata.id3.TextInformationFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
+import com.willmeet.musicplayer.lyrics.UsltFrame
 import com.willmeet.musicplayer.model.Track
 import com.willmeet.musicplayer.playback.ReplayGain
 import java.util.concurrent.TimeUnit
@@ -26,7 +30,15 @@ import java.util.concurrent.TimeUnit
  */
 object MetadataLoader {
 
-    private val LYRICS_KEYS = setOf("LYRICS", "UNSYNCEDLYRICS", "UNSYNCED LYRICS", "LYRIC")
+    /**
+     * 内嵌歌词的键名。
+     *
+     * 各容器叫法不一：FLAC / OGG 用 Vorbis Comment 的 `LYRICS`、mp3 用 TXXX 的自定义
+     * 描述符或 USLT 帧、m4a 的 `©lyr` 被 Media3 折算成 id 为 `USLT` 的文本帧。
+     */
+    private val LYRICS_KEYS = setOf(
+        "LYRICS", "UNSYNCEDLYRICS", "UNSYNCED LYRICS", "LYRIC", UsltFrame.FRAME_ID
+    )
 
     fun load(context: Context, track: Track): Track {
         var result = loadBasic(context, track)
@@ -77,6 +89,7 @@ object MetadataLoader {
         var lyrics: String? = null
         var gainDb: Double? = null
         var peak: Double? = null
+        var picture: ByteArray? = null
 
         fun absorb(key: String, value: String?) {
             if (value.isNullOrBlank()) return
@@ -96,11 +109,19 @@ object MetadataLoader {
                 when (val entry = metadata.get(j)) {
                     // FLAC / OGG
                     is VorbisComment -> absorb(entry.key, entry.value)
-                    // mp3 的 TXXX 自定义帧：description 才是真正的键名
+                    // mp3 的 TXXX 自定义帧：description 才是真正的键名。
+                    // m4a 的 ©lyr 也走这里，此时 description 为空、id 是 USLT。
                     is TextInformationFrame -> {
                         val key = entry.description ?: entry.id
                         absorb(key, entry.values.firstOrNull())
                     }
+                    // mp3 的 USLT：Id3Decoder 不认识这个帧，只把帧体原样丢出来，自己解
+                    is BinaryFrame -> if (entry.id == UsltFrame.FRAME_ID) {
+                        absorb(UsltFrame.FRAME_ID, UsltFrame.parse(entry.data))
+                    }
+                    // 封面兜底，仅在 MediaMetadataRetriever 没拿到时用
+                    is ApicFrame -> if (picture == null) picture = entry.pictureData
+                    is PictureFrame -> if (picture == null) picture = entry.pictureData
                 }
             }
         }
@@ -108,6 +129,7 @@ object MetadataLoader {
         val replayGain = ReplayGain(gainDb, peak).takeIf { !it.isEmpty }
 
         return track.copy(
+            artwork = track.artwork ?: picture,
             embeddedLyrics = track.embeddedLyrics ?: lyrics,
             replayGain = track.replayGain ?: replayGain
         )
