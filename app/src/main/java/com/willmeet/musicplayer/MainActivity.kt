@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MusicPlayerTheme {
                 val viewModel: PlayerViewModel = viewModel()
-                PlayerScreen(viewModel)
+                PlayerScreen(viewModel, onQuit = { finish() })
             }
         }
     }

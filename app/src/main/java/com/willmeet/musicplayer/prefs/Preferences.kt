@@ -37,12 +37,6 @@ class Preferences(context: Context) {
         get() = enumOf(KEY_LAYOUT, NowPlayingLayout.ARTWORK_AND_LYRICS)
         set(value) = prefs.edit { putString(KEY_LAYOUT, value.name) }
 
-    var backgroundOpacity: Float
-        get() = prefs.getFloat(KEY_BG_OPACITY, 1f).coerceIn(MIN_BACKGROUND_OPACITY, 1f)
-        set(value) = prefs.edit {
-            putFloat(KEY_BG_OPACITY, value.coerceIn(MIN_BACKGROUND_OPACITY, 1f))
-        }
-
     /** 默认开启：有标签就用，没标签的文件本来也不受影响。 */
     var replayGainEnabled: Boolean
         get() = prefs.getBoolean(KEY_REPLAY_GAIN, true)
@@ -54,16 +48,12 @@ class Preferences(context: Context) {
     }
 
     companion object {
-        /** 背景不透明度下限。再低文字就浮在壁纸上没法看了。 */
-        const val MIN_BACKGROUND_OPACITY = 0.2f
-
         private const val KEY_TREE_URI = "tree_uri"
         private const val KEY_PLAY_MODE = "play_mode"
         private const val KEY_VOLUME = "volume"
         private const val KEY_SORT_ORDER = "sort_order"
         private const val KEY_SORT_ASC = "sort_ascending"
         private const val KEY_LAYOUT = "now_playing_layout"
-        private const val KEY_BG_OPACITY = "background_opacity"
         private const val KEY_REPLAY_GAIN = "replay_gain"
     }
 }

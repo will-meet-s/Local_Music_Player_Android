@@ -119,9 +119,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private val _layout = MutableStateFlow(prefs.nowPlayingLayout)
     val layout: StateFlow<NowPlayingLayout> = _layout.asStateFlow()
 
-    private val _backgroundOpacity = MutableStateFlow(prefs.backgroundOpacity)
-    val backgroundOpacity: StateFlow<Float> = _backgroundOpacity.asStateFlow()
-
     private val _replayGainEnabled = MutableStateFlow(prefs.replayGainEnabled)
     val replayGainEnabled: StateFlow<Boolean> = _replayGainEnabled.asStateFlow()
 
@@ -184,6 +181,29 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         controller?.release()
         controller = null
         super.onCleared()
+    }
+
+    /**
+     * 彻底退出：停播放、撤通知、停服务。界面的 `finish()` 由 Activity 负责，
+     * ViewModel 不该知道 Activity 的存在。
+     *
+     * 顺序有讲究：先释放 controller 再停服务。反过来的话服务已经没了，
+     * controller 还连着一个不存在的会话。
+     */
+    fun quit() {
+        stopProgressTicker()
+        metadataJob?.cancel()
+
+        controller?.run {
+            stop()
+            clearMediaItems()
+            release()
+        }
+        // 置空，否则 onCleared 会对同一个 controller 再 release 一次
+        controller = null
+
+        val context = getApplication<Application>()
+        context.stopService(Intent(context, PlaybackService::class.java))
     }
 
     // MARK: - 曲库
@@ -515,12 +535,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         val next = _layout.value.next()
         _layout.value = next
         prefs.nowPlayingLayout = next
-    }
-
-    fun setBackgroundOpacity(value: Float) {
-        val clamped = value.coerceIn(Preferences.MIN_BACKGROUND_OPACITY, 1f)
-        _backgroundOpacity.value = clamped
-        prefs.backgroundOpacity = clamped
     }
 
     fun setReplayGainEnabled(enabled: Boolean) {

@@ -52,13 +52,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerScreen(viewModel: PlayerViewModel) {
+fun PlayerScreen(viewModel: PlayerViewModel, onQuit: () -> Unit) {
 
     val folderName by viewModel.folderName.collectAsStateWithLifecycle()
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val library by viewModel.library.collectAsStateWithLifecycle()
     val error by viewModel.errorMessage.collectAsStateWithLifecycle()
-    val opacity by viewModel.backgroundOpacity.collectAsStateWithLifecycle()
 
     var showSettings by remember { mutableStateOf(false) }
 
@@ -70,13 +69,6 @@ fun PlayerScreen(viewModel: PlayerViewModel) {
 
     Scaffold { padding ->
         Box(Modifier.fillMaxSize()) {
-
-            // 背景层单独一层，透明度只作用于它，文字和控件始终清晰
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = opacity))
-            )
 
             Column(
                 Modifier
@@ -163,7 +155,7 @@ fun PlayerScreen(viewModel: PlayerViewModel) {
             onDismissRequest = { showSettings = false },
             sheetState = rememberModalBottomSheetState()
         ) {
-            SettingsSheet(viewModel)
+            SettingsSheet(viewModel, onQuit = onQuit)
         }
     }
 }
