@@ -3,6 +3,7 @@ package com.willmeet.musicplayer.library
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -29,6 +30,8 @@ import java.util.concurrent.TimeUnit
  * 任何一步失败都只是让对应字段留空 —— 扫描不该因为单个坏文件中断。
  */
 object MetadataLoader {
+
+    private const val TAG = "MetadataLoader"
 
     /**
      * 内嵌歌词的键名。
@@ -63,7 +66,9 @@ object MetadataLoader {
                 artwork = retriever.embeddedPicture
             )
         } catch (e: Exception) {
-            // setDataSource 对损坏文件会抛 RuntimeException，标题已降级为文件名，够用
+            // setDataSource 对损坏文件会抛 RuntimeException，标题已降级为文件名，够用。
+            // 但必须留痕：静默吞掉的话，「整库只显示文件名」这种故障根本无从下手。
+            Log.w(TAG, "读不到基础元数据：${track.fileName}", e)
             track
         } finally {
             runCatching { retriever.release() }
@@ -83,6 +88,7 @@ object MetadataLoader {
                 .retrieveMetadata(DefaultMediaSourceFactory(context), MediaItem.fromUri(track.uri))
                 .get(8, TimeUnit.SECONDS)
         } catch (e: Exception) {
+            Log.w(TAG, "解析容器元数据失败：${track.fileName}", e)
             return track
         }
 
