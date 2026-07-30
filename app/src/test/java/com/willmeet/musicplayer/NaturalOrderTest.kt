@@ -24,8 +24,14 @@ class NaturalOrderTest {
 
     @Test
     fun `leading zeros do not change value`() {
-        assertEquals(0, sign("a01", "a1"))
-        assertEquals(0, sign("track007", "track7"))
+        // 前导零不影响数值大小
+        assertEquals(-1, sign("a01", "a2"))
+        assertEquals(1, sign("a010", "a9"))
+
+        // 数值相等时不返回 0，而是由实现末尾的序数兜底定序 ——
+        // 这样比较器保持全序，不同字符串永不相等，排序结果才确定
+        assertEquals(-1, sign("a01", "a1"))
+        assertEquals(-1, sign("track007", "track7"))
     }
 
     @Test
@@ -36,7 +42,12 @@ class NaturalOrderTest {
 
     @Test
     fun `ignores case`() {
-        assertEquals(0, sign("Track1", "track1"))
+        // 大小写不参与排序判断：Track2 排在 track10 前面靠的是数值比较
+        assertEquals(-1, sign("Track2", "track10"))
+        assertEquals(1, sign("TRACK10", "track2"))
+
+        // 仅大小写不同的两串在自然序上等价，同样由序数兜底定序（大写在前）
+        assertEquals(-1, sign("Track1", "track1"))
     }
 
     @Test

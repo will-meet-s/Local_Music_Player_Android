@@ -21,8 +21,11 @@ object LrcParser {
         var offsetMs = 0.0
 
         for (raw in content.split('\n', '\r')) {
-            parseOffset(raw)?.let {
-                offsetMs = it
+            // 不写成 parseOffset(raw)?.let { ...; continue }：
+            // 从内联 lambda 里 continue 外层循环在 Kotlin 2.0 仍是实验特性，编译报错
+            val offset = parseOffset(raw)
+            if (offset != null) {
+                offsetMs = offset
                 continue
             }
 
